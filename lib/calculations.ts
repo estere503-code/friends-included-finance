@@ -9,7 +9,7 @@ export function commissionFor(amount: number, split: Split): Split {
   const result = Object.fromEntries(people.map((person) => [person, Math.floor(pool * split[person]) / 100])) as Split;
   const difference = Math.round((pool - Object.values(result).reduce((a, b) => a + b, 0)) * 100) / 100;
   if (difference) {
-    const winner = people.sort((a, b) => split[b] - split[a] || people.indexOf(a) - people.indexOf(b))[0];
+    const winner = [...people].sort((a, b) => split[b] - split[a] || people.indexOf(a) - people.indexOf(b))[0];
     result[winner] = Math.round((result[winner] + difference) * 100) / 100;
   }
   return result;
