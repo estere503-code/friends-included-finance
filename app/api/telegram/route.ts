@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (text === "/whoami") { await telegram(chatId, `Telegram user ID: ${userId}; chat ID: ${chatId}`); return NextResponse.json({ ok: true }); }
   const { data: employee } = await client.from("employees").select("role").eq("telegram_user_id", userId).single();
   if (!employee) { await telegram(chatId, "Your Telegram account is not linked to a fictional employee. Ask Svetlana to link it in Manager controls."); return NextResponse.json({ ok: true }); }
-  const [command, raw = ""] = text.split(/\s+/, 2); const p = raw.split("|").map((v: string) => v.trim());
+  const [command, ...args] = text.split(/\s+/); const p = args.join(" ").split("|").map((v: string) => v.trim());
   if (command === "/sale") {
     const [reference, customer, project, description, rawAmount, richard, anastasia, jeanClaude] = p; const amount = Number(rawAmount); const split = { richard: Number(richard), anastasia: Number(anastasia), jean_claude: Number(jeanClaude) };
     if (!["richard", "anastasia", "jean_claude"].includes(employee.role) || !reference || !customer || !["A", "B"].includes(project) || !description || !(amount > 0) || !validSplit(split)) { await telegram(chatId, "I could not save that sale. Use /help and check your role, positive amount, and 100% split."); return NextResponse.json({ ok: true }); }
