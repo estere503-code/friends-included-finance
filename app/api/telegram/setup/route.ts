@@ -23,11 +23,3 @@ export async function POST(request: NextRequest) {
   }
   return registerWebhook();
 }
-
-// Temporary browser-only activation used once when authenticated request headers are unavailable.
-export async function GET(request: NextRequest) {
-  if (request.nextUrl.searchParams.get("activate") !== "now") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-  return registerWebhook();
-}
