@@ -8,10 +8,18 @@ const help = "Friends Included commands:\n/sale REF|Customer|A or B|Description|
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (webhookSecret && request.headers.get("x-telegram-bot-api-secret-token") !== webhookSecret) return NextResponse.json({ error: "Unauthorized webhook" }, { status: 401 });
-  const update = await request.json(); const message = update.message; const chatId = String(message?.chat?.id ?? ""); const userId = String(message?.from?.id ?? ""); const text = String(message?.text ?? "").trim();
+  const update = await request.json(); const updateId = Number(update?.update_id); const message = update.message; const chatId = String(message?.chat?.id ?? ""); const userId = String(message?.from?.id ?? ""); const text = String(message?.text ?? "").trim();
   if (!chatId || !userId) return NextResponse.json({ ok: true });
+  const client = db();
+  if (Number.isSafeInteger(updateId) && updateId >= 0) {
+    const { error: receiptError } = await client.from("telegram_updates").insert({ update_id: updateId });
+    if (receiptError) {
+      if (receiptError.code === "23505") return NextResponse.json({ ok: true, duplicate: true });
+      return NextResponse.json({ error: "Could not record Telegram update." }, { status: 503 });
+    }
+  }
   if (text === "/start" || text === "/help") { await telegram(chatId, help); return NextResponse.json({ ok: true }); }
-  const client = db(); const { data: employee } = await client.from("employees").select("role").eq("telegram_user_id", userId).single();
+  const { data: employee } = await client.from("employees").select("role").eq("telegram_user_id", userId).single();
   if (!employee) { await telegram(chatId, "Your Telegram account is not linked to a fictional employee. Ask Svetlana to link it in Manager controls."); return NextResponse.json({ ok: true }); }
   const [command, raw = ""] = text.split(/\s+/, 2); const p = raw.split("|").map((v: string) => v.trim());
   if (command === "/sale") {
