@@ -9,3 +9,8 @@ create table if not exists sales (
 create table if not exists expenses (
   id uuid primary key default gen_random_uuid(), reference text unique not null, submitted_at timestamptz not null default now(), reporter text not null default 'kevin' check(reporter='kevin'), description text not null, category text not null check(category in ('Materials','Travel','Other')), amount numeric not null check(amount>0), proposed_allocation text not null check(proposed_allocation in ('A','B','overhead')), final_allocation text check(final_allocation in ('A','B','overhead')), status text not null check(status in ('awaiting_allocation','allocated')), notification_chat_id text, notification_status text default 'not_required', sync_status text default 'sync_pending'
 );
+
+create table if not exists telegram_updates (
+  update_id bigint primary key,
+  received_at timestamptz not null default now()
+);
