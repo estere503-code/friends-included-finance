@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
   if (command === "/expense") {
     const [reference, description, category, rawAmount, allocation] = p; const amount = Number(rawAmount); const overhead = allocation === "overhead";
-    if (!["kevin", "expenses"].includes(employee.role) || !reference || !description || !["Materials", "Travel", "Other"].includes(category) || !["A", "B", "overhead"].includes(allocation) || !(amount > 0)) { await telegram(chatId, "I could not save that expense. Use /help and check your role and all values."); return NextResponse.json({ ok: true }); }
+    if (!reference || !description || !["Materials", "Travel", "Other"].includes(category) || !["A", "B", "overhead"].includes(allocation) || !(amount > 0)) { await telegram(chatId, "I could not save that expense. Use /help and check your role and all values."); return NextResponse.json({ ok: true }); }
     const { data: expense, error } = await client.from("expenses").insert({ reference: reference.toUpperCase(), reporter: "kevin", description, category, amount, proposed_allocation: allocation, final_allocation: overhead ? "overhead" : null, status: overhead ? "allocated" : "awaiting_allocation", notification_chat_id: chatId }).select().single();
     if (error) { await telegram(chatId, error.code === "23505" ? "That reference already exists." : "I could not save the expense."); return NextResponse.json({ ok: true }); }
     try { await syncExpense(expense); await client.from("expenses").update({ sync_status: "synced" }).eq("id", expense.id); } catch { await client.from("expenses").update({ sync_status: "sync_pending" }).eq("id", expense.id); }
