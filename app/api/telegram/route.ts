@@ -4,6 +4,7 @@ import { validSplit } from "@/lib/calculations";
 import { syncExpense, syncSale } from "@/lib/sheets";
 import { telegram } from "@/lib/telegram";
 
+
 const help = "Friends Included commands:\n/sale REF|Customer|A or B|Description|Amount|Richard%|Anastasia%|Jean-Claude%\n/expense REF|Description|Materials, Travel, or Other|Amount|A, B, or overhead\nYour Telegram identity must first be linked by Svetlana on the website.";
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
     }
   }
   if (text === "/start" || text === "/help") { await telegram(chatId, help); return NextResponse.json({ ok: true }); }
+  if (text === "/whoami") { await telegram(chatId, `Telegram user ID: ${userId}; chat ID: ${chatId}`); return NextResponse.json({ ok: true }); }
   const { data: employee } = await client.from("employees").select("role").eq("telegram_user_id", userId).single();
   if (!employee) { await telegram(chatId, "Your Telegram account is not linked to a fictional employee. Ask Svetlana to link it in Manager controls."); return NextResponse.json({ ok: true }); }
   const [command, raw = ""] = text.split(/\s+/, 2); const p = raw.split("|").map((v: string) => v.trim());
@@ -34,9 +36,3 @@ export async function POST(request: NextRequest) {
     const [reference, description, category, rawAmount, allocation] = p; const amount = Number(rawAmount); const overhead = allocation === "overhead";
     if (employee.role !== "kevin" || !reference || !description || !["Materials", "Travel", "Other"].includes(category) || !["A", "B", "overhead"].includes(allocation) || !(amount > 0)) { await telegram(chatId, "I could not save that expense. Use /help and check your role and all values."); return NextResponse.json({ ok: true }); }
     const { data: expense, error } = await client.from("expenses").insert({ reference: reference.toUpperCase(), reporter: "kevin", description, category, amount, proposed_allocation: allocation, final_allocation: overhead ? "overhead" : null, status: overhead ? "allocated" : "awaiting_allocation", notification_chat_id: chatId }).select().single();
-    if (error) { await telegram(chatId, error.code === "23505" ? "That reference already exists." : "I could not save the expense."); return NextResponse.json({ ok: true }); }
-    try { await syncExpense(expense); await client.from("expenses").update({ sync_status: "synced" }).eq("id", expense.id); } catch { await client.from("expenses").update({ sync_status: "sync_pending" }).eq("id", expense.id); }
-    await telegram(chatId, `Expense ${expense.reference} recorded: €${amount.toFixed(2)}, proposed allocation ${allocation}, ${overhead ? "allocated" : "Awaiting allocation"}.`); return NextResponse.json({ ok: true });
-  }
-  await telegram(chatId, help); return NextResponse.json({ ok: true });
-}
