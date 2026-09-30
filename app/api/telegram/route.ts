@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
   }
   if (text === "/start" || text === "/help") { await telegram(chatId, help); return NextResponse.json({ ok: true }); }
-  if (text === "/whoami") { await telegram(chatId, `Telegram user ID: ${userId}; chat ID: ${chatId}`); return NextResponse.json({ ok: true }); }
+  
   const { data: employee } = await client.from("employees").select("role").eq("telegram_user_id", userId).single();
   if (!employee) { await telegram(chatId, "Your Telegram account is not linked to a fictional employee. Ask Svetlana to link it in Manager controls."); return NextResponse.json({ ok: true }); }
   const [command, ...args] = text.split(/\s+/); const p = args.join(" ").split("|").map((v: string) => v.trim());
